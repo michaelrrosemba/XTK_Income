@@ -1,0 +1,44 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>XTokenV2 Mint Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body style="font-family:sans-serif; padding:20px;">
+    <h2>XTokenV2 Mint Interface</h2>
+    <button onclick="mintTokens()">Mint XTK2</button>
+    <p id="status"></p>
+
+    <script>
+        const contractAddress = "0xB84F20171e80B581089E1c2B5EF7325bB96Fba61";
+        const abi = [
+            {
+                "inputs": [],
+                "name": "mint",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            }
+        ];
+
+        async function mintTokens() {
+            try {
+                if (!window.ethereum) throw new Error("MetaMask is not installed.");
+
+                await ethereum.request({ method: 'eth_requestAccounts' });
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                const signer = provider.getSigner();
+                const contract = new ethers.Contract(contractAddress, abi, signer);
+
+                document.getElementById("status").innerText = "Minting...";
+                const tx = await contract.mint();
+                await tx.wait();
+                document.getElementById("status").innerText = "Mint successful!";
+            } catch (err) {
+                document.getElementById("status").innerText = "Error: " + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
