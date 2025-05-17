@@ -3,94 +3,69 @@
 <head>
   <title>VaultA Manual Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    input, button {
-      margin: 5px;
-      padding: 8px;
-      font-size: 16px;
-    }
-    input {
-      width: 200px;
-    }
-  </style>
 </head>
 <body>
   <h2>VaultA Manual Interface</h2>
-
-  <input id="amount" placeholder="Amount in MATIC" />
-  <input id="minOut" placeholder="Min POL Out" />
-
-  <div>
-    <button onclick="deposit()">Deposit</button>
-    <button onclick="swapToPOL()">Swap to POL</button>
-    <button onclick="withdraw()">Withdraw</button>
-  </div>
-
+  <input id="amount" type="text" placeholder="Amount in MATIC" />
+  <br><br>
+  <button onclick="depositMatic()">Deposit</button>
+  <button onclick="swapToPOL()">Swap to POL</button>
+  <button onclick="withdrawPOL()">Withdraw</button>
   <p id="status">Status: Waiting...</p>
 
   <script>
     const contractAddress = "0xf030100Ed70AB430472Dc23b2Ddcd035f80E3ff6";
     const abi = [
-      "function deposit() external payable",
-      "function swapToPOL(uint256 minOut) external",
-      "function withdraw() external"
+      "function deposit() public payable",
+      "function swapToPOL(uint256 amount) public",
+      "function withdraw() public",
     ];
 
-    async function getContract() {
-      if (!window.ethereum) {
-        alert("MetaMask not detected.");
-        throw new Error("MetaMask not available");
-      }
+    async function connect() {
+      if (!window.ethereum) throw new Error("MetaMask is not installed");
       await ethereum.request({ method: "eth_requestAccounts" });
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
-      return new ethers.Contract(contractAddress, abi, signer);
+      const contract = new ethers.Contract(contractAddress, abi, signer);
+      return { contract };
     }
 
-    async function deposit() {
+    async function depositMatic() {
       const amount = document.getElementById("amount").value;
-      if (!amount || isNaN(amount)) return updateStatus("Enter a valid MATIC amount.");
+      if (!amount) return updateStatus("Enter an amount.");
 
       try {
-        const contract = await getContract();
+        const { contract } = await connect();
         const tx = await contract.deposit({ value: ethers.utils.parseEther(amount) });
-        updateStatus("Deposit sent, waiting...");
         await tx.wait();
-        updateStatus("Deposit confirmed.");
+        updateStatus("Deposit successful");
       } catch (err) {
-        updateStatus("Error: " + (err.message || err));
+        updateStatus("Error: " + err.message);
       }
     }
 
     async function swapToPOL() {
-      const minOut = document.getElementById("minOut").value;
-      if (!minOut || isNaN(minOut)) return updateStatus("Enter minimum POL output.");
+      const amount = document.getElementById("amount").value;
+      if (!amount) return updateStatus("Enter an amount.");
 
       try {
-        const contract = await getContract();
-        const minOutWei = ethers.utils.parseEther(minOut);
-        const tx = await contract.swapToPOL(minOutWei);
-        updateStatus("Swap sent, waiting...");
+        const { contract } = await connect();
+        const tx = await contract.swapToPOL(ethers.utils.parseEther(amount));
         await tx.wait();
-        updateStatus("Swap confirmed.");
+        updateStatus("Swap successful");
       } catch (err) {
-        updateStatus("Error: " + (err.message || err));
+        updateStatus("Error: " + err.message);
       }
     }
 
-    async function withdraw() {
+    async function withdrawPOL() {
       try {
-        const contract = await getContract();
+        const { contract } = await connect();
         const tx = await contract.withdraw();
-        updateStatus("Withdrawal sent, waiting...");
         await tx.wait();
-        updateStatus("Withdrawal confirmed.");
+        updateStatus("Withdrawal successful");
       } catch (err) {
-        updateStatus("Error: " + (err.message || err));
+        updateStatus("Error: " + err.message);
       }
     }
 
