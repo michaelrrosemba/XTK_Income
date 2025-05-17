@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>VaultA Manual Controls</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+</head>
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+  <h2>VaultA Manual Interface</h2>
+
+  <button onclick="deposit()">Deposit</button>
+  <button onclick="swapToPOL()">Swap to POL</button>
+  <button onclick="withdraw()">Withdraw</button>
+  <p id="status">Status: Waiting...</p>
+
+  <script>
+    const contractAddress = "0xf030100Ed70AB430472Dc23b2Ddcd035f80E3ff6";
+    const abi = [
+      { "inputs": [], "name": "deposit", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [], "name": "swapToPOL", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+    ];
+
+    async function connect() {
+      if (!window.ethereum) throw new Error("MetaMask not detected.");
+      await ethereum.request({ method: 'eth_requestAccounts' });
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      return new ethers.Contract(contractAddress, abi, signer);
+    }
+
+    async function deposit() {
+      try {
+        const contract = await connect();
+        document.getElementById("status").innerText = "Status: Depositing...";
+        const tx = await contract.deposit();
+        await tx.wait();
+        document.getElementById("status").innerText = "Status: Deposit complete.";
+      } catch (err) {
+        document.getElementById("status").innerText = "Error: " + err.message;
+      }
+    }
+
+    async function swapToPOL() {
+      try {
+        const contract = await connect();
+        document.getElementById("status").innerText = "Status: Swapping...";
+        const tx = await contract.swapToPOL();
+        await tx.wait();
+        document.getElementById("status").innerText = "Status: Swap complete.";
+      } catch (err) {
+        document.getElementById("status").innerText = "Error: " + err.message;
+      }
+    }
+
+    async function withdraw() {
+      try {
+        const contract = await connect();
+        document.getElementById("status").innerText = "Status: Withdrawing...";
+        const tx = await contract.withdraw();
+        await tx.wait();
+        document.getElementById("status").innerText = "Status: Withdraw complete.";
+      } catch (err) {
+        document.getElementById("status").innerText = "Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
