@@ -2,41 +2,50 @@
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract VaultA is Ownable { IERC20 public token; address public treasury;
+contract VaultA is Ownable { address public tokenAddress; // POL token
 
-constructor(IERC20 _token, address _treasury) {
-    token = _token;
-    treasury = _treasury;
+event Deposited(address indexed user, uint256 amount);
+event Withdrawn(address indexed user, uint256 amount);
+event Swapped(address indexed user, uint256 amount);
+
+constructor(address _tokenAddress) Ownable(msg.sender) {
+    tokenAddress = _tokenAddress;
 }
 
-receive() external payable {}
+// Allow contract to receive MATIC
+receive() external payable {
+    emit Deposited(msg.sender, msg.value);
+}
 
+// Deposit MATIC into the contract
 function deposit() external payable {
-    require(msg.value > 0, "Send MATIC to deposit");
+    require(msg.value > 0, "Must send MATIC");
+    emit Deposited(msg.sender, msg.value);
 }
 
-function swapToPOL() external onlyOwner {
-    (bool sent, ) = treasury.call{value: address(this).balance}("");
-    require(sent, "Failed to send MATIC");
+// Withdraw MATIC from the contract by owner
+function withdraw(uint256 amount) external onlyOwner {
+    require(address(this).balance >= amount, "Insufficient balance");
+    (bool success, ) = payable(msg.sender).call{value: amount}("");
+    require(success, "Withdraw failed");
+    emit Withdrawn(msg.sender, amount);
 }
 
-function withdrawToken(address to, uint256 amount) external onlyOwner {
-    require(token.transfer(to, amount), "Token transfer failed");
+// Swap MATIC for POL (mock: owner-triggered transfer)
+function swapToPOL(uint256 amount) external onlyOwner {
+    require(address(this).balance >= amount, "Insufficient MATIC");
+
+    IERC20 token = IERC20(tokenAddress);
+    require(token.balanceOf(address(this)) >= amount, "Insufficient POL tokens");
+
+    // Transfer POL to owner for demo
+    require(token.transfer(msg.sender, amount), "Token transfer failed");
+    emit Swapped(msg.sender, amount);
 }
 
-function updateTreasury(address newTreasury) external onlyOwner {
-    require(newTreasury != address(0), "Invalid address");
-    treasury = newTreasury;
-}
-
-function updateToken(IERC20 newToken) external onlyOwner {
-    require(address(newToken) != address(0), "Invalid token");
-    token = newToken;
-}
-
-function getBalance() external view returns (uint256 matic, uint256 tokenBal) {
-    matic = address(this).balance;
-    tokenBal = token.balanceOf(address(this));
+// View contract MATIC balance
+function getBalance() external view returns (uint256) {
+    return address(this).balance;
 }
 
 }
