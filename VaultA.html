@@ -1,28 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>VaultA Manual Controls</title>
+  <title>VaultA Manual Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
-<body style="font-family: Arial, sans-serif; padding: 20px;">
+<body style="font-family: sans-serif; padding: 20px;">
   <h2>VaultA Manual Interface</h2>
+
+  <input id="amount" placeholder="Amount in MATIC" style="padding: 6px; width: 200px;" />
+  <br/><br/>
 
   <button onclick="deposit()">Deposit</button>
   <button onclick="swapToPOL()">Swap to POL</button>
   <button onclick="withdraw()">Withdraw</button>
+
   <p id="status">Status: Waiting...</p>
 
   <script>
     const contractAddress = "0xf030100Ed70AB430472Dc23b2Ddcd035f80E3ff6";
+
     const abi = [
-      { "inputs": [], "name": "deposit", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
+      { "inputs": [], "name": "deposit", "outputs": [], "stateMutability": "payable", "type": "function" },
       { "inputs": [], "name": "swapToPOL", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
       { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
     ];
 
-    async function connect() {
-      if (!window.ethereum) throw new Error("MetaMask not detected.");
-      await ethereum.request({ method: 'eth_requestAccounts' });
+    async function getContract() {
+      if (!window.ethereum) {
+        throw new Error("MetaMask is not installed.");
+      }
+
+      await window.ethereum.request({ method: 'eth_requestAccounts' });
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
       return new ethers.Contract(contractAddress, abi, signer);
@@ -30,11 +38,13 @@
 
     async function deposit() {
       try {
-        const contract = await connect();
-        document.getElementById("status").innerText = "Status: Depositing...";
-        const tx = await contract.deposit();
+        const contract = await getContract();
+        const amountInput = document.getElementById("amount").value;
+        const value = ethers.utils.parseEther(amountInput);
+        document.getElementById("status").innerText = "Depositing...";
+        const tx = await contract.deposit({ value });
         await tx.wait();
-        document.getElementById("status").innerText = "Status: Deposit complete.";
+        document.getElementById("status").innerText = "Deposit successful";
       } catch (err) {
         document.getElementById("status").innerText = "Error: " + err.message;
       }
@@ -42,11 +52,11 @@
 
     async function swapToPOL() {
       try {
-        const contract = await connect();
-        document.getElementById("status").innerText = "Status: Swapping...";
+        const contract = await getContract();
+        document.getElementById("status").innerText = "Swapping...";
         const tx = await contract.swapToPOL();
         await tx.wait();
-        document.getElementById("status").innerText = "Status: Swap complete.";
+        document.getElementById("status").innerText = "Swap successful";
       } catch (err) {
         document.getElementById("status").innerText = "Error: " + err.message;
       }
@@ -54,11 +64,11 @@
 
     async function withdraw() {
       try {
-        const contract = await connect();
-        document.getElementById("status").innerText = "Status: Withdrawing...";
+        const contract = await getContract();
+        document.getElementById("status").innerText = "Withdrawing...";
         const tx = await contract.withdraw();
         await tx.wait();
-        document.getElementById("status").innerText = "Status: Withdraw complete.";
+        document.getElementById("status").innerText = "Withdraw successful";
       } catch (err) {
         document.getElementById("status").innerText = "Error: " + err.message;
       }
