@@ -1,54 +1,49 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+<!DOCTYPE html>
+<html>
+<head>
+  <title>XTokenV2 Mint Interface</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { padding: 10px 20px; font-size: 16px; }
+  </style>
+</head>
+<body>
+  <h2>XTokenV2 Mint Interface</h2>
+  <button onclick="mintTokens()">Mint XTK2</button>
+  <p id="status"></p>
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+  <script>
+    const contractAddress = "0xc14ddb90C8fd16eEf4870aD779d04d52Cd5C6854";
+    const abi = [
+      {
+        "inputs": [],
+        "name": "mint",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+      }
+    ];
 
-contract XTokenV2 is ERC20, Ownable {
-    uint256 public constant maxSupply = 350000 * 1e18;
-    uint256 public mintBatchSize = 24000 * 1e18;
-    uint256 public maxDailyMint = 350000 * 1e18;
+    async function mintTokens() {
+      try {
+        if (!window.ethereum) throw new Error("MetaMask is not installed.");
 
-    uint256 public mintedToday;
-    uint256 public lastMintDayStart;
+        await ethereum.request({ method: 'eth_requestAccounts' });
 
-    // Hardcoded mint recipient: AUTO-XTK-001
-    address public constant mintReceiver = address(0x7a523a378e047C4c4744c1BA128BB0B8D9915b83);
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
 
-    constructor() ERC20("XTokenV2", "XTK2") Ownable(msg.sender) {}
+        document.getElementById("status").innerText = "Minting...";
+        const tx = await contract.mint();
+        await tx.wait();
 
-    modifier withinDailyLimit() {
-        if (block.timestamp >= lastMintDayStart + 1 days) {
-            mintedToday = 0;
-            lastMintDayStart = block.timestamp;
-        }
-        require(mintedToday + mintBatchSize <= maxDailyMint, "Daily mint limit exceeded");
-        _;
+        document.getElementById("status").innerText = "Mint successful!";
+      } catch (err) {
+        document.getElementById("status").innerText = "Error: " + err.message;
+      }
     }
-
-    modifier canMint() {
-        require(totalSupply() + mintBatchSize <= maxSupply, "Max supply reached");
-        _;
-    }
-
-    function mint() external onlyOwner withinDailyLimit canMint {
-        _mint(mintReceiver, mintBatchSize);
-        mintedToday += mintBatchSize;
-    }
-
-    function updateMintBatchSize(uint256 newBatch) external onlyOwner {
-        require(newBatch <= maxSupply, "Batch too large");
-        mintBatchSize = newBatch;
-    }
-
-    function updateMaxDailyMint(uint256 newDailyMax) external onlyOwner {
-        require(newDailyMax <= maxSupply, "Exceeds cap");
-        maxDailyMint = newDailyMax;
-    }
-
-    function getDailyMintInfo() external view returns (uint256 minted, uint256 remaining, uint256 resetAt) {
-        uint256 resetTime = lastMintDayStart + 1 days;
-        uint256 rem = maxDailyMint > mintedToday ? maxDailyMint - mintedToday : 0;
-        return (mintedToday, rem, resetTime);
-    }
-}
+  </script>
+</body>
+</html>
