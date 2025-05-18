@@ -1,51 +1,37 @@
 // SPDX-License-Identifier: MIT pragma solidity ^0.8.20;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol"; import "@openzeppelin/contracts/access/Ownable.sol";
+interface IWMATIC { function deposit() external payable; function transfer(address to, uint256 amount) external returns (bool); }
 
-contract VaultA is Ownable { address public tokenAddress; // POL token
+interface IPOL { function transfer(address to, uint256 amount) external returns (bool); }
 
-event Deposited(address indexed user, uint256 amount);
-event Withdrawn(address indexed user, uint256 amount);
-event Swapped(address indexed user, uint256 amount);
+contract VaultA { address public owner; address public wmatic; address public pol;
 
-constructor(address _tokenAddress) Ownable(msg.sender) {
-    tokenAddress = _tokenAddress;
+constructor(address _wmatic, address _pol) {
+    owner = msg.sender;
+    wmatic = _wmatic;
+    pol = _pol;
 }
 
-// Allow contract to receive MATIC
-receive() external payable {
-    emit Deposited(msg.sender, msg.value);
+receive() external payable {}
+
+modifier onlyOwner() {
+    require(msg.sender == owner, "Not owner");
+    _;
 }
 
-// Deposit MATIC into the contract
 function deposit() external payable {
-    require(msg.value > 0, "Must send MATIC");
-    emit Deposited(msg.sender, msg.value);
+    require(msg.value > 0, "No MATIC sent");
 }
 
-// Withdraw MATIC from the contract by owner
-function withdraw(uint256 amount) external onlyOwner {
-    require(address(this).balance >= amount, "Insufficient balance");
-    (bool success, ) = payable(msg.sender).call{value: amount}("");
-    require(success, "Withdraw failed");
-    emit Withdrawn(msg.sender, amount);
-}
-
-// Swap MATIC for POL (mock: owner-triggered transfer)
 function swapToPOL(uint256 amount) external onlyOwner {
-    require(address(this).balance >= amount, "Insufficient MATIC");
-
-    IERC20 token = IERC20(tokenAddress);
-    require(token.balanceOf(address(this)) >= amount, "Insufficient POL tokens");
-
-    // Transfer POL to owner for demo
-    require(token.transfer(msg.sender, amount), "Token transfer failed");
-    emit Swapped(msg.sender, amount);
+    require(address(this).balance >= amount, "Not enough MATIC");
+    IWMATIC(wmatic).deposit{value: amount}();
+    IWMATIC(wmatic).transfer(pol, amount);
 }
 
-// View contract MATIC balance
-function getBalance() external view returns (uint256) {
-    return address(this).balance;
+function withdraw(uint256 amount) external onlyOwner {
+    require(address(this).balance >= amount, "Not enough balance");
+    payable(owner).transfer(amount);
 }
 
 }
