@@ -3,81 +3,62 @@
 <head>
   <title>VaultA Manual Interface</title>
   <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
-  <style>
-    body {
-      font-family: sans-serif;
-      padding: 20px;
-    }
-    input {
-      padding: 10px;
-      margin-bottom: 10px;
-      width: 200px;
-    }
-    button {
-      padding: 10px;
-      margin: 5px;
-    }
-  </style>
 </head>
 <body>
   <h2>VaultA Manual Interface</h2>
-  <input type="number" id="amount" placeholder="Amount in MATIC" />
-  <br>
+  <input type="text" id="amount" placeholder="Amount in MATIC" />
+  <br><br>
   <button onclick="deposit()">Deposit</button>
-  <button onclick="swapToPOL()">Swap to POL</button>
   <button onclick="withdraw()">Withdraw</button>
-  <p id="status">Status: Waiting...</p>
+  <br><br>
+  <div id="status">Status: Waiting...</div>
 
   <script>
-    const contractAddress = "0xf030100Ed70AB430472Dc23b2Ddcd035f80E3ff6"; // VaultA
+    const contractAddress = "0xf030100Ed70AB430472Dc23b2Ddcd035f80E3ff6";
     const abi = [
-      { "inputs": [], "name": "deposit", "outputs": [], "stateMutability": "payable", "type": "function" },
-      { "inputs": [], "name": "swapToPOL", "outputs": [], "stateMutability": "nonpayable", "type": "function" },
-      { "inputs": [], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function" }
+      "function deposit() external payable",
+      "function withdraw() external",
+      "event Deposited(address indexed user, uint256 amount)",
+      "event Withdrawn(address indexed user, uint256 amount)"
     ];
 
-    async function getContract() {
-      if (!window.ethereum) throw new Error("MetaMask is not installed");
-      await window.ethereum.request({ method: "eth_requestAccounts" });
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      const signer = provider.getSigner();
-      return new ethers.Contract(contractAddress, abi, signer);
-    }
-
     async function deposit() {
+      const status = document.getElementById("status");
       try {
-        const amount = document.getElementById("amount").value;
-        const contract = await getContract();
-        const tx = await contract.deposit({ value: ethers.utils.parseEther(amount) });
-        document.getElementById("status").innerText = "Depositing...";
-        await tx.wait();
-        document.getElementById("status").innerText = "Deposit successful!";
-      } catch (err) {
-        document.getElementById("status").innerText = "Error: " + err.message;
-      }
-    }
+        if (!window.ethereum) throw new Error("MetaMask not found");
 
-    async function swapToPOL() {
-      try {
-        const contract = await getContract();
-        const tx = await contract.swapToPOL();
-        document.getElementById("status").innerText = "Swapping...";
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+
+        const amountInput = document.getElementById("amount").value;
+        const amount = ethers.utils.parseEther(amountInput);
+        const tx = await contract.deposit({ value: amount });
+        status.innerText = "Transaction submitted: " + tx.hash;
         await tx.wait();
-        document.getElementById("status").innerText = "Swap successful!";
+        status.innerText = "Deposit successful.";
       } catch (err) {
-        document.getElementById("status").innerText = "Error: " + err.message;
+        status.innerText = "Error: " + err.message;
       }
     }
 
     async function withdraw() {
+      const status = document.getElementById("status");
       try {
-        const contract = await getContract();
+        if (!window.ethereum) throw new Error("MetaMask not found");
+
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const signer = provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
+
         const tx = await contract.withdraw();
-        document.getElementById("status").innerText = "Withdrawing...";
+        status.innerText = "Transaction submitted: " + tx.hash;
         await tx.wait();
-        document.getElementById("status").innerText = "Withdraw successful!";
+        status.innerText = "Withdrawal successful.";
       } catch (err) {
-        document.getElementById("status").innerText = "Error: " + err.message;
+        status.innerText = "Error: " + err.message;
       }
     }
   </script>
