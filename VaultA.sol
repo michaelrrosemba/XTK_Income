@@ -16,7 +16,8 @@ contract VaultA {
     mapping(address => uint256) private _balances;
 
     constructor() {
-        xtkToken = IERC20(0xc14ddb90C8fd16eEf4870aD779d04d52Cd5C6854);
+        // ✅ CORRECT FINAL XTK2 TOKEN ADDRESS
+        xtkToken = IERC20(0x0FCa5E3ca52f7926C2adC2D0E1A4416B348adE6c);
     }
 
     function deposit(uint256 amount) external {
